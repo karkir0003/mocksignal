@@ -154,7 +154,7 @@ describe('Role-Based Navigation Gating (Navbar)', () => {
 
     const docLink = screen.getByRole('link', { name: /read documentation/i });
     expect(docLink).toBeDefined();
-    expect(docLink.getAttribute('href')).toBe('https://github.com/karkir0003/interview-feedback#readme');
+    expect(docLink.getAttribute('href')).toBe('https://github.com/karkir0003/mocksignal');
     expect(docLink.getAttribute('target')).toBe('_blank');
     expect(docLink.getAttribute('rel')).toContain('noopener');
   });
