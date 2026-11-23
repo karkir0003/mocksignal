@@ -10,7 +10,7 @@ import {
 describe('Centralized URL & Attribution Constants', () => {
   it('exports default public external URLs', () => {
     expect(DEFAULT_STRIPE_TIP_URL).toBe('https://buy.stripe.com/cNi6oG6Wb5tlgNpfg93ks01');
-    expect(GITHUB_REPO_URL).toBe('https://github.com/karkir0003/interview-feedback#readme');
+    expect(GITHUB_REPO_URL).toBe('https://github.com/karkir0003/mocksignal');
   });
 
   describe('buildStripeTipUrl', () => {
