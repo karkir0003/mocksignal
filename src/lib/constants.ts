@@ -1,5 +1,5 @@
 export const DEFAULT_STRIPE_TIP_URL = 'https://buy.stripe.com/cNi6oG6Wb5tlgNpfg93ks01';
-export const GITHUB_REPO_URL = 'https://github.com/karkir0003/interview-feedback#readme';
+export const GITHUB_REPO_URL = 'https://github.com/karkir0003/mocksignal';
 
 /**
  * Builds a standardized Stripe tip checkout URL with UTM attribution parameters.
