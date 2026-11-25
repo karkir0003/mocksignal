@@ -87,10 +87,12 @@ This document provides instructions, architectural boundaries, security policies
 
 ## 4. Cloudflare Worker & Deployment Rules
 
-### Deployment Triggers (`.github/workflows/deploy.yml`)
-Cloudflare Worker deployments are filtered via path allowlists. An agent should know:
-- **Triggers Deploy**: Changes to `src/**`, `server/**`, `functions/**`, `public/**`, `index.html`, `wrangler.json`, and build dependencies (`package.json`, `vite.config.ts`, etc.).
-- **Does NOT Trigger Deploy**: Changes to `supabase/**`, `docs/**`, `README.md`, `.gitignore`, or `.github/workflows/ci.yml`.
+### CI & Deployment Triggers (`.github/workflows/ci.yml` & `.github/workflows/deploy.yml`)
+CI checks and Cloudflare Worker deployments are decoupled into two workflows:
+- **`.github/workflows/ci.yml` (`CI`)**: Runs path-filtered checks in parallel (`validate` for app/build paths and `test-migrations` for `supabase/**`) and uploads the `dist` artifact on `main` pushes when app paths changed.
+- **`.github/workflows/deploy.yml` (`Deploy to Cloudflare Workers`)**: Triggers via `workflow_run` only after `CI` succeeds on `main` (reusing the `dist` artifact and skipping deploy if no app paths changed) or manually via `workflow_dispatch`.
+- **Triggers Deploy**: Changes to `src/**`, `server/**`, `functions/**`, `public/**`, `index.html`, `wrangler.json`, build dependencies (`package.json`, `vite.config.ts`, etc.), and workflow files (`.github/workflows/ci.yml`, `.github/workflows/deploy.yml`).
+- **Does NOT Trigger Deploy**: Changes only to `supabase/**`, `docs/**`, `README.md`, or `.gitignore`.
 
 ### Edge Functions (`functions/api/`)
 - API endpoints run inside Cloudflare Workers runtime.

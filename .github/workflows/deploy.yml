@@ -1,46 +1,76 @@
 name: Deploy to Cloudflare Workers
 
 on:
-  push:
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
     branches: [main]
-    paths:
-      - 'src/**'
-      - 'server/**'
-      - 'functions/**'
-      - 'public/**'
-      - 'index.html'
-      - 'wrangler.json'
-      - 'package.json'
-      - 'yarn.lock'
-      - 'vite.config.ts'
-      - 'tsconfig*.json'
-      - 'tailwind.config.js'
-      - 'postcss.config.js'
-      - '.github/workflows/deploy.yml'
   workflow_dispatch:
+
+# Queue concurrent deploys rather than cancelling one mid-flight
+concurrency:
+  group: deploy-cloudflare-main
+  cancel-in-progress: false
 
 jobs:
   deploy:
     name: Build & Deploy to Cloudflare
+    if: >
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.event == 'push' &&
+       github.event.workflow_run.conclusion == 'success')
     runs-on: ubuntu-latest
     permissions:
+      actions: read
       contents: read
       deployments: write
 
     steps:
-      - name: Checkout code
+      - name: Check CI build artifact availability
+        id: artifact-check
+        if: github.event_name == 'workflow_run'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          ARTIFACT_ID=$(gh api "repos/${{ github.repository }}/actions/runs/${{ github.event.workflow_run.id }}/artifacts" --jq '.artifacts[] | select(.name == "dist") | .id' | head -n 1)
+          if [ -n "$ARTIFACT_ID" ]; then
+            echo "has_dist=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_dist=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Checkout code (tested CI commit)
+        if: github.event_name == 'workflow_run' && steps.artifact-check.outputs.has_dist == 'true'
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+
+      - name: Download CI Build Artifact
+        if: github.event_name == 'workflow_run' && steps.artifact-check.outputs.has_dist == 'true'
+        uses: actions/download-artifact@v8
+        with:
+          name: dist
+          path: dist/
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Checkout code (manual dispatch)
+        if: github.event_name == 'workflow_dispatch'
         uses: actions/checkout@v7
 
-      - name: Setup Node.js & Yarn
+      - name: Setup Node.js & Yarn (manual dispatch)
+        if: github.event_name == 'workflow_dispatch'
         uses: actions/setup-node@v7
         with:
           node-version: 24
           cache: "yarn"
 
-      - name: Install dependencies
+      - name: Install dependencies (manual dispatch)
+        if: github.event_name == 'workflow_dispatch'
         run: yarn install --frozen-lockfile --ignore-engines
 
-      - name: Verify & Build Project
+      - name: Verify & Build Project (manual dispatch)
+        if: github.event_name == 'workflow_dispatch'
         run: yarn verify
         env:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
@@ -50,6 +80,7 @@ jobs:
           VITE_GA_MEASUREMENT_ID: ${{ secrets.VITE_GA_MEASUREMENT_ID }}
 
       - name: Deploy to Cloudflare Workers
+        if: github.event_name == 'workflow_dispatch' || steps.artifact-check.outputs.has_dist == 'true'
         uses: cloudflare/wrangler-action@v4
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
