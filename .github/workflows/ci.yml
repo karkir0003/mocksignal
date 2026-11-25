@@ -22,6 +22,11 @@ jobs:
       app: ${{ steps.filter.outputs.app }}
       migrations: ${{ steps.filter.outputs.migrations }}
     steps:
+      # As per https://github.com/dorny/paths-filter, we need the checkout action to 
+      # run before running path filter for push/merge to main case
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
       - name: Check modified paths
         id: filter
         uses: dorny/paths-filter@v4
