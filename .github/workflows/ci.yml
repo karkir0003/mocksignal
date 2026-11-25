@@ -22,6 +22,9 @@ jobs:
       app: ${{ steps.filter.outputs.app }}
       migrations: ${{ steps.filter.outputs.migrations }}
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
       - name: Check modified paths
         id: filter
         uses: dorny/paths-filter@v4
